@@ -46,7 +46,11 @@ public class DuParser {
                 @Override
                 public void run() {
                     try {
-                        parseFile(new File(s));
+                        if(!s.equals("-")) {
+                            parseFile(new File(s));
+                        } else {
+                            parseFile("-", new BufferedReader(new InputStreamReader(System.in)));
+                        }
                     } catch (InvocationTargetException | IOException | InterruptedException | NumberFormatException ex) {
                         Logger.getLogger(DuParser.class.getName()).log(Level.SEVERE, null, ex);
                     }
@@ -58,55 +62,59 @@ public class DuParser {
     }
 
     private static void parseFile(File f) throws InvocationTargetException, IOException, InterruptedException, NumberFormatException {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(f))))) {
-            String line;
-            Tree root = new Tree();
-            root.name = f.getAbsolutePath();
-            System.out.println("Stage 1: creating lists");
-            while ((line = in.readLine()) != null) {
-                String[] parts = line.split("\t", 2);
-                int size = Integer.parseInt(parts[0]);
-                String[] tree = parts[1].split("/");
-                Tree working = root;
-                for (String filePart : tree) {
-                    if (filePart.isEmpty() || ".".equals(filePart)) {
-                        continue;
-                    }
-                    if (working.children == null) {
-                        working.children = new HashSet<>();
-                    }
-                    Tree tmp = new Tree();
-                    tmp.name = filePart;
-                    if(working.children.contains(tmp)) {
-                        for(Tree t : working.children) {
-                            if(t.equals(tmp)) {
-                                tmp = t;
-                            }
-                        }
-                    } else working.children.add(tmp);
-                    working = tmp;
-                }
-                working.size = size;
-            }
-            System.out.println("Stage 2: sorting lists");
-            root = sortTree(root);
-            System.out.println("Stage 3: Building gui");
-            final DefaultMutableTreeNode jnodes = makeNode(root);
-            System.out.println("Stage 4: Rendering gui");
-            SwingUtilities.invokeAndWait(new Runnable() {
-
-                @Override
-                public void run() {
-                    JFrame frame = new JFrame("File system usage");
-                    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                    frame.setSize(600, 460);
-                    frame.setResizable(true);
-                    frame.getContentPane().setLayout(new GridBagLayout());
-                    frame.getContentPane().add(new JScrollPane(new JTree(jnodes)), new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, 1, new Insets(5, 5, 5, 5), 0, 0));
-                    frame.setVisible(true);
-                }
-            });
+        try (final BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(f)))) {
+            parseFile(f.getAbsolutePath(), in);
         }
+    }
+
+    private static void parseFile(String name, BufferedReader in) throws InvocationTargetException, IOException, InterruptedException, NumberFormatException {
+        String line;
+        Tree root = new Tree();
+        root.name = name;
+        System.out.println("Stage 1: creating lists");
+        while ((line = in.readLine()) != null) {
+            String[] parts = line.split("\t", 2);
+            int size = Integer.parseInt(parts[0]);
+            String[] tree = parts[1].split("/");
+            Tree working = root;
+            for (String filePart : tree) {
+                if (filePart.isEmpty() || ".".equals(filePart)) {
+                    continue;
+                }
+                if (working.children == null) {
+                    working.children = new HashSet<>();
+                }
+                Tree tmp = new Tree();
+                tmp.name = filePart;
+                if(working.children.contains(tmp)) {
+                    for(Tree t : working.children) {
+                        if(t.equals(tmp)) {
+                            tmp = t;
+                        }
+                    }
+                } else working.children.add(tmp);
+                working = tmp;
+            }
+            working.size = size;
+        }
+        System.out.println("Stage 2: sorting lists");
+        root = sortTree(root);
+        System.out.println("Stage 3: Building gui");
+        final DefaultMutableTreeNode jnodes = makeNode(root);
+        System.out.println("Stage 4: Rendering gui");
+        SwingUtilities.invokeAndWait(new Runnable() {
+
+            @Override
+            public void run() {
+                JFrame frame = new JFrame("File system usage");
+                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                frame.setSize(600, 460);
+                frame.setResizable(true);
+                frame.getContentPane().setLayout(new GridBagLayout());
+                frame.getContentPane().add(new JScrollPane(new JTree(jnodes)), new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, 1, new Insets(5, 5, 5, 5), 0, 0));
+                frame.setVisible(true);
+            }
+        });
     }
 
     private static DefaultMutableTreeNode makeNode(Tree tree) {
