@@ -38,146 +38,148 @@ import javax.swing.tree.DefaultMutableTreeNode;
  */
 public class DuParser {
 
-    public static void main(String[] args) throws FileNotFoundException, IOException, InterruptedException, InvocationTargetException {
-        Executor pool = Executors.newFixedThreadPool(4);
-        for(String s : args)  {
-            pool.execute(new Runnable() {
+	public static void main(String[] args) throws FileNotFoundException, IOException, InterruptedException, InvocationTargetException {
+		Executor pool = Executors.newFixedThreadPool(4);
+		for (String s : args) {
+			pool.execute(new Runnable() {
 
-                @Override
-                public void run() {
-                    try {
-                        if(!s.equals("-")) {
-                            parseFile(new File(s));
-                        } else {
-                            parseFile("-", new BufferedReader(new InputStreamReader(System.in)));
-                        }
-                    } catch (InvocationTargetException | IOException | InterruptedException | NumberFormatException ex) {
-                        Logger.getLogger(DuParser.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            });
-            
-        }
+				@Override
+				public void run() {
+					try {
+						if (!s.equals("-")) {
+							parseFile(new File(s));
+						} else {
+							parseFile("-", new BufferedReader(new InputStreamReader(System.in)));
+						}
+					} catch (InvocationTargetException | IOException | InterruptedException | NumberFormatException ex) {
+						Logger.getLogger(DuParser.class.getName()).log(Level.SEVERE, null, ex);
+					}
+				}
+			});
 
-    }
+		}
 
-    private static void parseFile(File f) throws InvocationTargetException, IOException, InterruptedException, NumberFormatException {
-        try (final BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(f)))) {
-            parseFile(f.getAbsolutePath(), in);
-        }
-    }
+	}
 
-    private static void parseFile(String name, BufferedReader in) throws InvocationTargetException, IOException, InterruptedException, NumberFormatException {
-        String line;
-        Tree root = new Tree();
-        root.name = name;
-        System.out.println("Stage 1: creating lists");
-        while ((line = in.readLine()) != null) {
-            String[] parts = line.split("\t", 2);
-            int size = Integer.parseInt(parts[0]);
-            String[] tree = parts[1].split("/");
-            Tree working = root;
-            for (String filePart : tree) {
-                if (filePart.isEmpty() || ".".equals(filePart)) {
-                    continue;
-                }
-                if (working.children == null) {
-                    working.children = new HashSet<>();
-                }
-                Tree tmp = new Tree();
-                tmp.name = filePart;
-                if(working.children.contains(tmp)) {
-                    for(Tree t : working.children) {
-                        if(t.equals(tmp)) {
-                            tmp = t;
-                        }
-                    }
-                } else working.children.add(tmp);
-                working = tmp;
-            }
-            working.size = size;
-        }
-        System.out.println("Stage 2: sorting lists");
-        root = sortTree(root);
-        System.out.println("Stage 3: Building gui");
-        final DefaultMutableTreeNode jnodes = makeNode(root);
-        System.out.println("Stage 4: Rendering gui");
-        SwingUtilities.invokeAndWait(new Runnable() {
+	private static void parseFile(File f) throws InvocationTargetException, IOException, InterruptedException, NumberFormatException {
+		try (final BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(f)))) {
+			parseFile(f.getAbsolutePath(), in);
+		}
+	}
 
-            @Override
-            public void run() {
-                JFrame frame = new JFrame("File system usage");
-                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                frame.setSize(600, 460);
-                frame.setResizable(true);
-                frame.getContentPane().setLayout(new GridBagLayout());
-                frame.getContentPane().add(new JScrollPane(new JTree(jnodes)), new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, 1, new Insets(5, 5, 5, 5), 0, 0));
-                frame.setVisible(true);
-            }
-        });
-    }
+	private static void parseFile(String name, BufferedReader in) throws InvocationTargetException, IOException, InterruptedException, NumberFormatException {
+		String line;
+		Tree root = new Tree();
+		root.name = name;
+		System.out.println("Stage 1: creating lists");
+		while ((line = in.readLine()) != null) {
+			String[] parts = line.split("\t", 2);
+			int size = Integer.parseInt(parts[0]);
+			String[] tree = parts[1].split("/");
+			Tree working = root;
+			for (String filePart : tree) {
+				if (filePart.isEmpty() || ".".equals(filePart)) {
+					continue;
+				}
+				if (working.children == null) {
+					working.children = new HashSet<>();
+				}
+				Tree tmp = new Tree();
+				tmp.name = filePart;
+				if (working.children.contains(tmp)) {
+					for (Tree t : working.children) {
+						if (t.equals(tmp)) {
+							tmp = t;
+						}
+					}
+				} else {
+					working.children.add(tmp);
+				}
+				working = tmp;
+			}
+			working.size = size;
+		}
+		System.out.println("Stage 2: sorting lists");
+		root = sortTree(root);
+		System.out.println("Stage 3: Building gui");
+		final DefaultMutableTreeNode jnodes = makeNode(root);
+		System.out.println("Stage 4: Rendering gui");
+		SwingUtilities.invokeAndWait(new Runnable() {
 
-    private static DefaultMutableTreeNode makeNode(Tree tree) {
-        DefaultMutableTreeNode node = new DefaultMutableTreeNode(tree.name + " (" + tree.size + ")");
-        if (tree.children != null) {
-            for (Tree t : tree.children) {
-                node.add(makeNode(t));
-            }
-        }
-        return node;
-    }
+			@Override
+			public void run() {
+				JFrame frame = new JFrame("File system usage");
+				frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+				frame.setSize(600, 460);
+				frame.setResizable(true);
+				frame.getContentPane().setLayout(new GridBagLayout());
+				frame.getContentPane().add(new JScrollPane(new JTree(jnodes)), new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, 1, new Insets(5, 5, 5, 5), 0, 0));
+				frame.setVisible(true);
+			}
+		});
+	}
 
-    private static Tree sortTree(Tree in) {
-        Tree out = new Tree();
-        out.size = in.size;
-        out.name = in.name;
-        if (in.children instanceof SortedSet || in.children == null) {
-            out.children = in.children;
-        } else {
-            out.children = in.children.stream().parallel().map((Tree t) -> sortTree(t)).collect(Collectors.toCollection(TreeSet::new));
-        }
-        return out;
-    }
+	private static DefaultMutableTreeNode makeNode(Tree tree) {
+		DefaultMutableTreeNode node = new DefaultMutableTreeNode(tree.name + " (" + tree.size + ")");
+		if (tree.children != null) {
+			for (Tree t : tree.children) {
+				node.add(makeNode(t));
+			}
+		}
+		return node;
+	}
 
-    private static class Tree implements Comparable<Tree> {
+	private static Tree sortTree(Tree in) {
+		Tree out = new Tree();
+		out.size = in.size;
+		out.name = in.name;
+		if (in.children instanceof SortedSet || in.children == null) {
+			out.children = in.children;
+		} else {
+			out.children = in.children.stream().parallel().map((Tree t) -> sortTree(t)).collect(Collectors.toCollection(TreeSet::new));
+		}
+		return out;
+	}
 
-        public int size;
+	private static class Tree implements Comparable<Tree> {
 
-        public String name;
+		public int size;
 
-        public Set<Tree> children;
+		public String name;
 
-        @Override
-        public int compareTo(Tree o) {
-            int c = Integer.compare(o.size, size);
-            if (c != 0) {
-                return c;
-            }
-            return name.compareTo(o.name);
-        }
+		public Set<Tree> children;
 
-        @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = 97 * hash + Objects.hashCode(this.name);
-            return hash;
-        }
+		@Override
+		public int compareTo(Tree o) {
+			int c = Integer.compare(o.size, size);
+			if (c != 0) {
+				return c;
+			}
+			return name.compareTo(o.name);
+		}
 
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final Tree other = (Tree) obj;
-            if (!Objects.equals(this.name, other.name)) {
-                return false;
-            }
-            return true;
-        }
+		@Override
+		public int hashCode() {
+			int hash = 7;
+			hash = 97 * hash + Objects.hashCode(this.name);
+			return hash;
+		}
 
-    }
+		@Override
+		public boolean equals(Object obj) {
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			final Tree other = (Tree) obj;
+			if (!Objects.equals(this.name, other.name)) {
+				return false;
+			}
+			return true;
+		}
+
+	}
 
 }
