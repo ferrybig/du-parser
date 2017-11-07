@@ -108,7 +108,7 @@ public class DuParser {
 
 			@Override
 			public void run() {
-				JFrame frame = new JFrame("File system usage");
+				JFrame frame = new JFrame("File system usage: " + name);
 				frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 				frame.setSize(600, 460);
 				frame.setResizable(true);
